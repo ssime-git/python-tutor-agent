@@ -10,6 +10,10 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - LANGCHAIN_TRACING_V2=true
+      - LANGCHAIN_PROJECT=python-tutor-agent
+      - LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
     depends_on:
       - chroma
       - code-executor

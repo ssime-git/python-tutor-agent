@@ -117,8 +117,41 @@ curl -X POST http://localhost:8000/chat \
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Run this Python code: \n\n```python\nclass Calculator:\n    def __init__(self):\n        self.result = 0\n    \n    def add(self, num):\n        self.result += num\n        return self\n    \n    def subtract(self, num):\n        self.result -= num\n        return self\n    \n    def multiply(self, num):\n        self.result *= num\n        return self\n    \n    def divide(self, num):\n        if num == 0:\n            raise ValueError(\"Cannot divide by zero\")\n        self.result /= num\n        return self\n    \n    def get_result(self):\n        return self.result\n\n# Test the calculator\ncalc = Calculator()\ncalc.add(10).subtract(5).multiply(2).divide(5)\nprint(f\"Result: {calc.get_result()}\")  # Should print 2.0\n\n# Test error handling\ntry:\n    calc.divide(0)\nexcept ValueError as e:\n    print(f\"Error caught: {e}\")\n```"}'
+  -d '{"message": "Please run this code: def fibonacci(n):\n    if n <= 1:\n        return n\n    else:\n        return fibonacci(n-1) + fibonacci(n-2)\n\nprint(fibonacci(10))"}'
 ```
+
+## Response Format
+
+The agent provides structured responses with clear sections:
+
+- **📘 Explanation** - Clear explanation of concepts or code
+- **🔍 Code Analysis** - Detailed breakdown of what the code does
+- **🚀 Execution Results** - Results of code execution (when applicable)
+- **⚠️ Errors & Solutions** - Explanation of errors and how they were fixed
+- **💡 Best Practices** - Tips and improvements for the code
+- **🔗 Related Concepts** - Related Python concepts to explore
+
+The responses use proper markdown formatting for improved readability.
+
+## Monitoring and Debugging
+
+### Logging
+
+The application includes comprehensive logging to help with debugging and monitoring. Logs are output to the console and include timestamps, log levels, and detailed information about the agent's operations.
+
+### LangSmith Integration
+
+The agent is integrated with LangSmith for tracing and monitoring. To use LangSmith:
+
+1. Create an account at [LangSmith](https://smith.langchain.com/)
+2. Get your API key from the LangSmith dashboard
+3. Copy `.env.example` to `.env` and add your LangSmith API key:
+   ```
+   LANGCHAIN_API_KEY=your_langchain_api_key_here
+   ```
+4. Restart the application
+
+Once configured, you can view traces, monitor performance, and debug your agent in the LangSmith dashboard.
 
 ## Recent Updates
 
