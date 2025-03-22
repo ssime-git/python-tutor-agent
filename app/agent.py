@@ -119,7 +119,9 @@ def route_query(state: AgentState) -> AgentState:
     code_execution_keywords = [
         "run this code", "execute this", "run the following", 
         "execute the following", "run this program", "execute this program",
-        "can you run", "please run", "can you execute", "please execute"
+        "can you run", "please run", "can you execute", "please execute",
+        "run the", "execute the", "run", "execute", "calculate", "compute",
+        "evaluate", "find the result", "what is the result of", "what is the output of"
     ]
     
     # Check for specific code execution request
@@ -129,6 +131,23 @@ def route_query(state: AgentState) -> AgentState:
     code_indicators = ["```python", "```", "def ", "class ", "import ", "print("]
     has_code = any(indicator in user_message for indicator in code_indicators)
     
+    # Check for mathematical expressions or calculations
+    import re
+    math_patterns = [
+        r"\d+\s*[\+\-\*\/\%\^]\s*\d+",  # Basic arithmetic: 1 + 1, 2 * 3, etc.
+        r"math\.\w+\(",  # Math functions: math.sqrt(), math.sin(), etc.
+        r"\d+\s*\*\*\s*\d+",  # Exponentiation: 2**3
+        r"round\(", r"abs\(", r"min\(", r"max\(",  # Common math functions
+        r"sum\(", r"len\(",  # Common list operations
+        r"square root",  # Square root mentioned in text
+        r"sqrt",  # Square root abbreviation
+        r"factorial",  # Factorial calculation
+        r"logarithm", r"log",  # Logarithm functions
+        r"sin\(", r"cos\(", r"tan\(",  # Trigonometric functions
+        r"average", r"mean", r"median", r"mode"  # Statistical calculations
+    ]
+    has_math = any(re.search(pattern, user_message, re.IGNORECASE) for pattern in math_patterns)
+    
     # Check for knowledge retrieval keywords
     knowledge_keywords = [
         "explain", "what is", "how does", "tell me about", "describe",
@@ -137,8 +156,14 @@ def route_query(state: AgentState) -> AgentState:
     
     is_knowledge_request = any(keyword.lower() in user_message.lower() for keyword in knowledge_keywords)
     
+    # If it's a knowledge request with math, prioritize execution
+    if is_knowledge_request and has_math:
+        is_knowledge_request = False
+        is_execution_request = True
+        logger.info(f"Detected math in knowledge request, prioritizing code execution. Math detected: {has_math}")
+    
     # Determine the next step
-    if is_execution_request or (has_code and not is_knowledge_request):
+    if is_execution_request or has_code or has_math:
         state["context"]["execution_explicitly_requested"] = is_execution_request
         logger.info("Next step: execute_code")
         return {"messages": messages, "next_step": "execute_code", "context": state["context"]}
@@ -167,17 +192,62 @@ def execute_code(state: AgentState) -> AgentState:
     
     # If no code blocks with markdown, try to extract all Python-like code
     if not code_blocks:
-        # Assume the entire message might be code if it contains Python keywords
-        python_keywords = ["import", "def", "class", "for", "while", "if", "print", "return"]
-        if any(keyword in user_message for keyword in python_keywords):
-            code = user_message
+        # Check for simple mathematical expressions or calculations
+        expression_patterns = [
+            r"run the result of (.*?) in python",
+            r"calculate (.*?) in python",
+            r"compute (.*?) in python",
+            r"evaluate (.*?) in python",
+            r"what is (.*?) in python",
+            r"run (.*?) in python"
+        ]
+        
+        # Try to match explicit expression patterns first
+        for pattern in expression_patterns:
+            expression_match = re.search(pattern, user_message, re.IGNORECASE)
+            if expression_match:
+                expression = expression_match.group(1).strip()
+                # Wrap the expression in a print statement for execution
+                code = f"print({expression})"
+                logger.info(f"Extracted expression: {expression}")
+                break
         else:
-            # Fall back to LLM for code extraction if regex fails
-            llm_messages = [
-                {"role": "system", "content": "Extract the Python code from this message. Only output the code, nothing else."},
-                {"role": "user", "content": user_message}
+            # Check for mathematical expressions in the message
+            math_patterns = [
+                (r"\d+\s*[\+\-\*\/\%]\s*\d+", r"([^\"']*\d+\s*[\+\-\*\/\%]\s*\d+[^\"']*)"),  # Basic arithmetic: 1 + 1, 2 * 3, etc.
+                (r"\d+\s*\*\*\s*\d+", r"([^\"']*\d+\s*\*\*\s*\d+[^\"']*)"),  # Exponentiation: 2**3
+                (r"math\.\w+\(", r"(math\.\w+\([^\)]*\))"),  # Math functions: math.sqrt(), math.sin(), etc.
+                (r"round\(", r"(round\([^\)]*\))"),  # round()
+                (r"abs\(", r"(abs\([^\)]*\))"),  # abs()
+                (r"min\(", r"(min\([^\)]*\))"),  # min()
+                (r"max\(", r"(max\([^\)]*\))"),  # max()
+                (r"sum\(", r"(sum\([^\)]*\))"),  # sum()
+                (r"len\(", r"(len\([^\)]*\))")   # len()
             ]
-            code = call_llm(llm_messages)
+            
+            for check_pattern, extract_pattern in math_patterns:
+                if re.search(check_pattern, user_message):
+                    match = re.search(extract_pattern, user_message)
+                    if match:
+                        expression = match.group(1).strip()
+                        code = f"print({expression})"
+                        logger.info(f"Extracted mathematical expression: {expression}")
+                        break
+            else:
+                # Assume the entire message might be code if it contains Python keywords
+                python_keywords = ["import", "def", "class", "for", "while", "if", "print", "return"]
+                if any(keyword in user_message for keyword in python_keywords):
+                    code = user_message
+                else:
+                    # Fall back to LLM for code extraction if regex fails
+                    llm_messages = [
+                        {"role": "system", "content": """Extract the Python code or mathematical expression from this message. 
+                        If it's a simple calculation or expression, wrap it in a print() statement.
+                        Only output the code, nothing else."""},
+                        {"role": "user", "content": user_message}
+                    ]
+                    code = call_llm(llm_messages)
+                    logger.info(f"LLM extracted code: {code}")
     else:
         # Use the first code block found
         code = code_blocks[0]

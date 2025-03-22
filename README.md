@@ -54,7 +54,32 @@ graph TD
     class User user;
 ```
 
-### Data Flow
+## Features
+
+The Python Tutor Agent offers a comprehensive set of features designed to provide an effective learning experience:
+
+### Core Capabilities
+
+- **Knowledge Retrieval**: Access to a rich database of Python concepts, best practices, and explanations
+- **Code Execution**: Ability to run and analyze Python code in a secure environment
+- **Intelligent Query Routing**: Automatic detection of whether a query requires knowledge retrieval or code execution
+- **Structured Responses**: Clear, well-formatted responses with distinct sections for better understanding
+
+### Enhanced Computation Handling
+
+- **Mathematical Expression Detection**: Automatically identifies and processes mathematical expressions in queries
+- **Natural Language to Code Conversion**: Translates phrases like "square root of 16" into executable Python code
+- **Comprehensive Math Support**: Handles basic arithmetic, advanced operations, and mathematical functions
+- **Smart Prioritization**: Correctly routes queries with both knowledge and computational elements
+
+### Educational Features
+
+- **Code Analysis**: Detailed breakdown of what code does and how it works
+- **Error Explanation**: Clear explanations of errors and how to fix them
+- **Best Practices**: Suggestions for code improvements and Python best practices
+- **Related Concepts**: Links to related Python concepts for further learning
+
+## Data Flow
 
 1. User sends a message to the `/chat` endpoint
 2. The app service processes the message and determines the appropriate action
@@ -120,6 +145,25 @@ curl -X POST http://localhost:8000/chat \
   -d '{"message": "Please run this code: def fibonacci(n):\n    if n <= 1:\n        return n\n    else:\n        return fibonacci(n-1) + fibonacci(n-2)\n\nprint(fibonacci(10))"}'
 ```
 
+### Testing Mathematical Expressions
+
+```bash
+# Testing simple arithmetic
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Run the result of 1 + 1 in Python"}'
+
+# Testing mathematical functions
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is the square root of 16 in Python?"}'
+
+# Testing more complex calculations
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Calculate the factorial of 5 in Python"}'
+```
+
 ## Response Format
 
 The agent provides structured responses with clear sections:
@@ -132,6 +176,42 @@ The agent provides structured responses with clear sections:
 - **🔗 Related Concepts** - Related Python concepts to explore
 
 The responses use proper markdown formatting for improved readability.
+
+## Intelligent Query Routing
+
+The agent uses a sophisticated routing system to determine how to handle user queries:
+
+### Code Execution Detection
+
+The agent can intelligently detect when a query requires code execution, even if it's not explicitly requested:
+
+- **Explicit Code Execution**: Detects phrases like "run this code", "execute this", etc.
+- **Code Block Detection**: Automatically identifies Python code blocks in markdown format
+- **Mathematical Expressions**: Recognizes and executes mathematical expressions and calculations
+- **Simple Calculations**: Handles queries like "run the result of 1 + 1 in Python" or "what is the square root of 16 in Python"
+
+### Mathematical Operations Support
+
+The agent can detect and execute a wide range of mathematical operations:
+
+- Basic arithmetic (addition, subtraction, multiplication, division)
+- Advanced operations (exponentiation, square roots, logarithms)
+- Mathematical functions (trigonometric functions, statistical calculations)
+- Python's built-in math module functions
+
+### Intelligent Expression Extraction
+
+When a mathematical expression is detected:
+
+1. The agent extracts the expression from the user's query
+2. Converts natural language (e.g., "square root of 16") to valid Python code (e.g., `math.sqrt(16)`)
+3. Executes the code and provides the result along with an educational explanation
+
+### Knowledge vs. Computation Prioritization
+
+The agent intelligently prioritizes:
+- Code execution for computational queries, even if they contain knowledge-seeking keywords
+- Knowledge retrieval for conceptual questions without computational elements
 
 ## Monitoring and Debugging
 
