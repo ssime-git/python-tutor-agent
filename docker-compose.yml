@@ -30,6 +30,10 @@ services:
       - ./code-executor/tmp:/tmp
     environment:
       - EXECUTION_TIMEOUT=5
+    entrypoint: >
+      sh -c "mkdir -p /tmp/executions &&
+             chmod 777 /tmp/executions &&
+             uvicorn app:app --host 0.0.0.0 --port 8080"
 
   # LiteLLM server
   litellm:

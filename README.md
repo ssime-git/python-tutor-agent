@@ -100,11 +100,59 @@ docker compose up -d
   - Request body: `{"message": "Your question about Python here"}`
   - Response: `{"response": "Agent's response", "session_id": "unique_session_id"}`
 
+## Testing the Application
+
+You can test the application using curl commands or any API client. Here are some examples:
+
+### Testing Knowledge Retrieval
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "How do Python decorators work?"}'
+```
+
+### Testing Code Execution
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Run this Python code: \n\n```python\nclass Calculator:\n    def __init__(self):\n        self.result = 0\n    \n    def add(self, num):\n        self.result += num\n        return self\n    \n    def subtract(self, num):\n        self.result -= num\n        return self\n    \n    def multiply(self, num):\n        self.result *= num\n        return self\n    \n    def divide(self, num):\n        if num == 0:\n            raise ValueError(\"Cannot divide by zero\")\n        self.result /= num\n        return self\n    \n    def get_result(self):\n        return self.result\n\n# Test the calculator\ncalc = Calculator()\ncalc.add(10).subtract(5).multiply(2).divide(5)\nprint(f\"Result: {calc.get_result()}\")  # Should print 2.0\n\n# Test error handling\ntry:\n    calc.divide(0)\nexcept ValueError as e:\n    print(f\"Error caught: {e}\")\n```"}'
+```
+
+## Recent Updates
+
+### Code Execution Improvements
+
+The code execution functionality has been improved to:
+- Extract Python code directly from user messages using regex pattern matching
+- Properly handle markdown code blocks (```python ... ```)
+- Fall back to LLM extraction only when regex fails
+- Ensure the `/tmp/executions` directory exists and has proper permissions in the code-executor container
+
+### ChromaDB Integration
+
+The application now uses the ChromaDB service instead of a local Chroma instance:
+- Connects to the ChromaDB service running at http://chroma:8000
+- Creates and manages collections for storing Python knowledge
+- Provides fallback to in-memory Chroma if the service is unavailable
+- Compatible with ChromaDB v0.6.0 API
+
 ## Troubleshooting
 
 - If you encounter issues with the LiteLLM service, check the logs:
   ```bash
   docker compose logs litellm
+  ```
+
+- To check the ChromaDB service logs:
+  ```bash
+  docker compose logs chroma
+  ```
+
+- To check the code executor service logs:
+  ```bash
+  docker compose logs code-executor
   ```
 
 - To restart all services:

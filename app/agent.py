@@ -125,13 +125,31 @@ def execute_code(state: AgentState) -> AgentState:
     user_message = messages[-1]["content"]
     context = state["context"]
     
-    # Extract code
-    llm_messages = [
-        {"role": "system", "content": "Extract the Python code from this message. Only output the code, nothing else."},
-        {"role": "user", "content": user_message}
-    ]
+    # Extract code directly using regex pattern matching
+    import re
     
-    code = call_llm(llm_messages)
+    # Look for code blocks with ```python ... ``` format
+    code_block_pattern = r"```(?:python)?\s*([\s\S]*?)\s*```"
+    code_blocks = re.findall(code_block_pattern, user_message)
+    
+    # If no code blocks with markdown, try to extract all Python-like code
+    if not code_blocks:
+        # Assume the entire message might be code if it contains Python keywords
+        python_keywords = ["import", "def", "class", "for", "while", "if", "print", "return"]
+        if any(keyword in user_message for keyword in python_keywords):
+            code = user_message
+        else:
+            # Fall back to LLM for code extraction if regex fails
+            llm_messages = [
+                {"role": "system", "content": "Extract the Python code from this message. Only output the code, nothing else."},
+                {"role": "user", "content": user_message}
+            ]
+            code = call_llm(llm_messages)
+    else:
+        # Use the first code block found
+        code = code_blocks[0]
+    
+    print(f"Extracted code: {code}")
     
     # Execute the code in isolated container
     result = execute_code_in_container(code)
