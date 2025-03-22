@@ -101,6 +101,10 @@ Create a `.env` file in the root directory with the following variables:
 ```
 GOOGLE_API_KEY=your_google_api_key_here
 LITELLM_LOG_LEVEL=debug
+LANGCHAIN_API_KEY=your_langchain_api_key_here
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=python-tutor-agent
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 ```
 
 ### LiteLLM Configuration
@@ -251,6 +255,25 @@ The application now uses the ChromaDB service instead of a local Chroma instance
 - Provides fallback to in-memory Chroma if the service is unavailable
 - Compatible with ChromaDB v0.6.0 API
 
+### Enhanced Routing Logic
+
+The agent's routing logic has been improved to:
+- Detect mathematical expressions and calculations in user queries
+- Convert natural language math descriptions into executable Python code
+- Prioritize code execution when both knowledge retrieval and math are detected
+- Handle a wide range of mathematical operations including arithmetic, advanced operations, and functions
+- Extract and execute simple expressions like "1 + 1" or complex ones like "square root of 16"
+
+## Development
+
+To modify the application:
+
+1. Update the code in the `app` directory
+2. Rebuild and restart the containers:
+   ```bash
+   docker compose down && docker compose up --build -d
+   ```
+
 ## Troubleshooting
 
 - If you encounter issues with the LiteLLM service, check the logs:
@@ -273,12 +296,141 @@ The application now uses the ChromaDB service instead of a local Chroma instance
   docker compose down && docker compose up -d
   ```
 
-## Development
+## Agent Logic
 
-To modify the application:
+The Python Tutor Agent follows a structured decision-making process to handle user queries effectively:
 
-1. Update the code in the `app` directory
-2. Rebuild and restart the containers:
-   ```bash
-   docker compose down && docker compose up --build -d
-   ```
+### Query Processing Flow
+
+```mermaid
+flowchart TD
+    A[User Query] --> B{Route Query}
+    
+    %% Decision Logic
+    B -->|Code Detected| C[Code Execution Path]
+    B -->|Knowledge Request| D[Knowledge Retrieval Path]
+    
+    %% Code Execution Branch
+    C --> C1[Extract Code/Math Expression]
+    C1 --> C2[Format for Execution]
+    C2 --> C3[Execute in Container]
+    C3 --> C4[Capture Results/Errors]
+    C4 --> C5{Errors?}
+    C5 -->|Yes| C6[Attempt Auto-Fix]
+    C5 -->|No| E[Response Generation]
+    C6 --> E
+    
+    %% Knowledge Retrieval Branch
+    D --> D1[Search Vector Database]
+    D1 --> D2[Retrieve Relevant Content]
+    D2 --> E
+    
+    %% Response Generation
+    E --> E1[Format with Educational Context]
+    E1 --> E2[Structure Response with Markdown]
+    E2 --> F[Return to User]
+    
+    %% Decision Logic Details
+    subgraph "Routing Decision Logic"
+        G[Query Analysis]
+        G --> G1{Contains Code Block?}
+        G1 -->|Yes| C
+        G1 -->|No| G2{Math Expression?}
+        G2 -->|Yes| C
+        G2 -->|No| G3{Explicit Code Request?}
+        G3 -->|Yes| C
+        G3 -->|No| G4{Knowledge Request?}
+        G4 -->|Yes| D
+        G4 -->|No| G5[Ask for Clarification]
+    end
+    
+    %% Styling
+    classDef process fill:#d4f1f9,stroke:#333,stroke-width:1px;
+    classDef decision fill:#ffe6cc,stroke:#333,stroke-width:1px;
+    classDef output fill:#d5f5d5,stroke:#333,stroke-width:1px;
+    
+    class A,C1,C2,C3,C4,C6,D1,D2,E1,E2,G process;
+    class B,C5,G1,G2,G3,G4 decision;
+    class F,G5 output;
+```
+
+### Decision Logic
+
+```mermaid
+flowchart TD
+    Start([User Query]) --> A{Explicit Code Request?}
+    A -->|Yes| Z[Execute Code]
+    A -->|No| B{Contains Code Block?}
+    
+    B -->|Yes| Z
+    B -->|No| C{Contains Math Expression?}
+    
+    C -->|Yes| Z
+    C -->|No| D{Knowledge Request?}
+    
+    D -->|Yes| Y[Retrieve Knowledge]
+    D -->|No| E{Query Length > 3 Words?}
+    
+    E -->|Yes| Y
+    E -->|No| X[Ask for Clarification]
+    
+    %% Priority for Mixed Queries
+    F[Mixed Query\nKnowledge + Math] --> G{Math Detected?}
+    G -->|Yes| Z
+    G -->|No| Y
+    
+    %% Styling
+    classDef process fill:#d4f1f9,stroke:#333,stroke-width:1px;
+    classDef decision fill:#ffe6cc,stroke:#333,stroke-width:1px;
+    classDef output fill:#d5f5d5,stroke:#333,stroke-width:1px;
+    
+    class Start process;
+    class A,B,C,D,E,G decision;
+    class X,Y,Z output;
+```
+
+For mixed queries (containing both knowledge and computational elements), the agent prioritizes code execution when mathematical operations are detected.
+
+## Potential Improvements
+
+Future enhancements to the Python Tutor Agent could include:
+
+### Functionality Improvements
+
+1. **Multi-turn Conversations**: Enhance the agent to maintain context across multiple interactions, allowing for follow-up questions and progressive learning.
+
+2. **Code Visualization**: Integrate with tools like Python Tutor's visualization engine to provide step-by-step visual execution of code.
+
+3. **Interactive Code Exercises**: Generate practice exercises based on the concepts being discussed and provide feedback on user solutions.
+
+4. **Personalized Learning Paths**: Track user interactions to identify knowledge gaps and suggest personalized learning resources.
+
+5. **Advanced Error Analysis**: Provide more detailed explanations of common Python errors with visual indicators of where the error occurred.
+
+### Technical Improvements
+
+1. **Performance Optimization**: Improve response times by optimizing the code extraction and execution processes.
+
+2. **Model Enhancements**: Experiment with different LLM models to find the optimal balance between performance and accuracy.
+
+3. **Knowledge Base Expansion**: Continuously update and expand the knowledge base with the latest Python features and best practices.
+
+4. **Enhanced Security**: Implement additional security measures for the code execution environment to prevent potential exploits.
+
+5. **Offline Mode**: Add support for running the agent locally without internet connectivity for educational environments with limited access.
+
+### UI/UX Improvements
+
+1. **Mobile Responsiveness**: Optimize the frontend for better mobile device support.
+
+2. **Dark Mode**: Add a dark mode option for reduced eye strain during extended use.
+
+3. **Code Editor Integration**: Provide a built-in code editor with syntax highlighting for easier code entry.
+
+4. **Result History**: Allow users to save and revisit previous interactions and code executions.
+
+5. **Export Functionality**: Enable exporting of conversations and code examples for reference.
+
+## Contributing
+
+Contributions to the Python Tutor Agent are welcome! Please feel free to submit issues or pull requests to help improve the project.
