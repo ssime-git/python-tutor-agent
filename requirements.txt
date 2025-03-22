@@ -1,0 +1,16 @@
+# requirements.txt
+fastapi>=0.103.1
+uvicorn>=0.23.2
+pydantic>=2.3.0
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.1  # Add this line
+langchain-google-genai>=0.0.4
+langchain-chroma>=0.0.1
+langgraph>=0.0.19
+langsmith>=0.0.72
+litellm>=1.20.0
+chromadb>=0.4.22
+python-dotenv>=1.0.0
+jinja2>=3.1.2
+requests>=2.31.0

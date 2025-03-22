@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - chroma
+      - code-executor
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data/chroma:/chroma/chroma
+      
+  code-executor:
+    build: ./code-executor
+    ports:
+      - "8002:8080"
+    volumes:
+      - ./code-executor/tmp:/tmp
+    environment:
+      - EXECUTION_TIMEOUT=5
+
+  # LiteLLM server
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "8008:8000"
+    environment:
+      - PORT=8000
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DEFAULT_MODEL=gemini-2.0-flash
+    volumes:
+      - ./litellm-config:/app/config
