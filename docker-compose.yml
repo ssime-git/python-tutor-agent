@@ -13,6 +13,7 @@ services:
     depends_on:
       - chroma
       - code-executor
+      - litellm
 
   chroma:
     image: chromadb/chroma:latest
@@ -34,10 +35,20 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
     ports:
-      - "8008:8000"
+      - "8008:4000"
     environment:
-      - PORT=8000
+      - PORT=4000
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - DEFAULT_MODEL=gemini-2.0-flash
+      # Uncomment if you want to use a master key for authentication
+      # - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      # Add verbose logging to debug issues
+      - LITELLM_LOG_LEVEL=debug
     volumes:
       - ./litellm-config:/app/config
+    command: ["--config", "/app/config/config.yaml", "--port", "4000"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

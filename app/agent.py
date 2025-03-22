@@ -43,13 +43,17 @@ def call_llm(messages: List[Dict[str, str]], temperature: float = 0.2) -> str:
     for attempt in range(max_retries):
         try:
             response = requests.post(
-                "http://litellm:8000/v1/chat/completions",
+                "http://litellm:4000/v1/chat/completions",
                 json={
-                    "model": "gemini-2.0-flash",
+                    "model": "gemini/gemini-2.0-flash",  # Use the full model name in the format expected by LiteLLM
                     "messages": messages,
                     "temperature": temperature
                 },
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    # Uncomment and use if you set a master key in config.yaml
+                    # "Authorization": f"Bearer {os.environ.get('LITELLM_MASTER_KEY', '')}"
+                },
                 timeout=30  # Longer timeout
             )
             
@@ -58,9 +62,10 @@ def call_llm(messages: List[Dict[str, str]], temperature: float = 0.2) -> str:
                 return response.json()["choices"][0]["message"]["content"]
             else:
                 print(f"LiteLLM error (attempt {attempt+1}/{max_retries}): {response.status_code}")
+                print(f"Response content: {response.text}")
                 if attempt == max_retries - 1:
                     # Last attempt, fall back to direct API
-                    raise Exception(f"LiteLLM error after {max_retries} attempts")
+                    raise Exception(f"LiteLLM error after {max_retries} attempts: {response.text}")
                 # Wait before retrying
                 time.sleep(2)
         except Exception as e:

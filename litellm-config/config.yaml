@@ -2,9 +2,15 @@ model_list:
   - model_name: gemini-2.0-flash
     litellm_params:
       model: gemini/gemini-2.0-flash
-      api_key: ${GOOGLE_API_KEY}
+      api_key: "os.environ/GOOGLE_API_KEY"
 
 litellm_settings:
   drop_params: true
   request_timeout: 30
   verbose: true
+
+general_settings:
+  # No master key by default, but you can uncomment and set one if needed
+  # master_key: ${LITELLM_MASTER_KEY}
+  # Allow all requests without authentication for simplicity
+  allow_anonymous_requests: true
